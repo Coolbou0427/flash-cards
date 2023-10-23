@@ -62,7 +62,7 @@ function updateDisplay() {
       english.textContent = cell.v;
     }
   } else {
-    console.log('Cell not found');
+    console.log('Cell not found. Cell: ' + currentCol + currentRow);
   }
 }
 
