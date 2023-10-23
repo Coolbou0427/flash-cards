@@ -1,9 +1,7 @@
 let worksheet;
 let currentRow = 1;
-let currentCol = 0;
-let lastRow;
-let randomRows = [];
-let randomIndex = 0;
+let sequence = [];
+let availableRows = [];
 
 const spreadsheet = document.getElementById('upload').addEventListener('change', handleFileSelect);
 const characters = document.getElementById('characters');
@@ -13,31 +11,29 @@ const error = document.getElementById('error');
 
 function handleFileSelect(event) {
   const file = event.target.files[0];
-  
+
   if (file) {
     console.log('File selected:', file.name);
-    
+
     if (file.name.endsWith('.xlsx')) {
       document.getElementById('actual').style.display = 'none';
       document.getElementById('titles').style.display = 'none';
       error.textContent = "";
       const reader = new FileReader();
-      
+
       reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, {type: 'array'});
         worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const range = XLSX.utils.decode_range(worksheet['!ref']);
-        lastRow = range.e.r + 1;
-        
-        randomRows = [...Array(lastRow).keys()].slice(1); // Create an array [1, 2, ..., lastRow-1]
-        shuffleArray(randomRows); // Shuffle the array to get random order
-        randomIndex = 0; // Reset the index
-        currentRow = randomRows[randomIndex]; // Get the first random row
-        
+        const lastRow = range.e.r + 1;
+
+        availableRows = [...Array(lastRow).keys()].slice(1); // Create an array [1, 2, ..., lastRow-1]
+        currentRow = getRandomInt(); // Get the first random row
+
         updateDisplay();
       };
-      
+
       reader.readAsArrayBuffer(file);
     } else {
       error.textContent = 'The file is not a .xlsx file';
@@ -48,51 +44,48 @@ function handleFileSelect(event) {
 }
 
 function updateDisplay() {
-  const cols = ['A', 'B', 'C'];
-  const cell = worksheet[`${cols[currentCol]}${currentRow}`];
-  
+  // If sequence is empty, populate it based on random chance
+  if (sequence.length === 0) {
+    characters.innerHTML = "&nbsp;";
+    pinyin.innerHTML = "&nbsp;";
+    english.innerHTML = "&nbsp;";
+    const randomChance = Math.random();
+    sequence = randomChance < 0.33 ? ['C', 'A', 'B'] : ['A', 'B', 'C'];
+  }
+
+  const actualCol = sequence.shift(); // Remove and return the first element from sequence
+
+  const cell = worksheet[`${actualCol}${currentRow}`];
+
   if (cell) {
-    if (currentCol === 0) {
+    if (actualCol === 'A') {
       characters.textContent = cell.v;
-      pinyin.textContent = "";
-      english.textContent = "";
-    } else if (currentCol === 1) {
+    } else if (actualCol === 'B') {
       pinyin.textContent = cell.v;
-    } else if (currentCol === 2) {
+    } else if (actualCol === 'C') {
       english.textContent = cell.v;
     }
   } else {
-    console.log('Cell not found. Cell: ' + currentCol + currentRow);
+    console.log('Cell not found');
   }
 }
 
 function getRandomInt() {
-  randomIndex += 1;
+  const randomIndex = Math.floor(Math.random() * availableRows.length);
+  const randomRow = availableRows.splice(randomIndex, 1)[0];
   
-  if (randomIndex >= randomRows.length) {
-    shuffleArray(randomRows); // Reshuffle the array when all rows have been used
-    randomIndex = 0; // Reset the index
+  if (availableRows.length === 0) {
+    console.log("Out of rows, reload the file or something.");
   }
   
-  return randomRows[randomIndex];
-}
-
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
+  return randomRow;
 }
 
 document.addEventListener('keydown', function(event) {
   if (event.code === 'Space') {
-    currentCol += 1;
-    
-    if (currentCol > 2) {
-      currentCol = 0;
-      currentRow = getRandomInt(); // Get the next random row
+    if (sequence.length === 0) {
+      currentRow = getRandomInt(); // Get the next random row only when sequence is empty
     }
-    
     updateDisplay();
   }
 });
