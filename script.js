@@ -75,7 +75,10 @@ function getRandomInt() {
   const randomRow = availableRows.splice(randomIndex, 1)[0];
   
   if (availableRows.length === 0) {
-    console.log("Out of rows, reload the file or something.");
+    console.log("Out of rows, restarting");
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    const lastRow = range.e.r + 1;
+    availableRows = [...Array(lastRow).keys()].slice(1);
   }
   
   return randomRow;
@@ -84,7 +87,7 @@ function getRandomInt() {
 document.addEventListener('keydown', function(event) {
   if (event.code === 'Space') {
     if (sequence.length === 0) {
-      currentRow = getRandomInt(); // Get the next random row only when sequence is empty
+      currentRow = getRandomInt();
     }
     updateDisplay();
   }
